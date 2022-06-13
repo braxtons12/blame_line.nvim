@@ -1,0 +1,141 @@
+*blame_line.nvim* For Neovim version 0.7+ Last change: 2022 June 12
+
+A simple and configurable git blame line using virtual text for Neovim 0.7+.
+
+Author: Braxton Salyer
+
+============================================================================================
+CONTENTS 													*blame_line*
+*blame_line-contents*
+
+Introduction..............................................: |blame_line-introduction|
+Usage.....................................................: |blame_line-usage|
+Configuration.............................................: |blame_line-configuration|
+Highlights................................................: |blame_line-highlights|
+Commands..................................................: |blame_line-commands|
+Issues....................................................: |blame_line-issues|
+
+
+============================================================================================
+INTRODUCTION 												*blame_line-introduction*
+
+A simple and configurable git blame line using virtual text for Neovim 0.7+ using pure lua.
+
+This plugin is implemented completely in lua, but is heavily inspired by and in some ways
+is a fork & rewrite of blamer.nvim by APZelos (see https://github.com/APZelos/blamer.nvim).
+
+The primary reason for this plugin's existence is because existing offerings either
+(1) didn't work on all platforms (e.g., Windows) (or at all) or
+(2) were too slow and introduced flicker in the current line.
+
+This plugin aims to solve both of those problems.
+
+============================================================================================
+USAGE 														*blame_line-usage*
+
+blame_line.nvim doesn't require much to use.
+Just import using your favorite package manager, and then: >
+
+	-- In your init.lua
+    require("blame_line").setup {
+		-- specify your config options here. See "Configuration"
+	}
+
+<
+============================================================================================
+CONFIGURATION 												*blame_line-configuration*
+
+The available configuration options are (shown with default settings): >
+
+	require("blame_line").setup {
+		-- whether the blame line should be shown in visual modes
+    	show_in_visual = true,
+
+		-- whether the blame line should be shown in insert mode
+        show_in_insert = true,
+
+		-- the string to prefix the blame line with
+        prefix = " ",
+
+		-- String specifying the the blame line format.
+		-- Any combination of the following specifiers, along with any additional text.
+		--     - `"<author>"` - the author of the change.
+		--     - `"<author-mail>"` - the email of the author.
+		--     - `"<author-time>"` - the time the author made the change.
+		--     - `"<committer>"` - the person who committed the change to the repository.
+		--     - `"<committer-mail>"` - the email of the committer.
+		--     - `"<committer-time>"` - the time the change was committed to the repository.
+		--     - `"<summary>"` - the commit summary/message.
+		--     - `"<commit-short>"` - short portion of the commit hash.
+		--     - `"<commit-long>"` - the full commit hash.
+        template = "<author> • <author-time> • <summary>",
+
+		-- The date format settings, for `"<author-time>"` and `"<committer-time>"`
+        date = {
+			-- whether the date should be relative instead of precise
+			-- (I.E. "3 days ago" instead of "09-06-2022".
+            relative = true,
+
+			-- `strftime` compatible format string.
+			-- Only used if `date.relative == false`
+            format = "%d-%m-%y",
+        },
+
+		-- The highlight group to highlight the blame line with.
+		-- The highlight of this group defaults to `Comment`.
+        hl_group = "BlameLineNvim",
+
+		-- The delay in milliseconds between a cursor movement and
+		-- when the blame line should appear/update
+        delay = 0,
+	}
+
+<
+============================================================================================
+HIGHLIGHTS 													*blame_line-usage*
+
+The blame line will be highlighted using the group given as `hl_group` in the setup
+function, or the `BlameLineNvim` group by default if no group was given.
+The highlight of the group defaults to linking to `Comment`.
+
+To change the highlight group used, at configuration time do: >
+
+	require("blame_line").setup {
+		hl_group = "YourHighlightGroupName",
+		-- your other configuration settings
+	}
+<
+
+To change the highlight settings of the group used do: >
+
+	-- or replace `BlameLineNvim` with the highlight group you used above
+	-- if you didn't leave it as the default group
+	vim.cmd("highlight BlameLineNvim your-preferred-highlight-settings")
+<
+
+============================================================================================
+COMMANDS 													*blame_line-usage*
+
+blame_line.nvim only provides three commands, all for enabling/disabling the plugin:
+
+* `BlameLineEnable` - Enables the blame line for files tracked by git,
+  in modes valid for the current configuration
+  (see `blame_line.setup.show_in_insert` and see `blame_line.setup.show_in_visual`).
+  By default the blame line is enabled
+* `BlameLineDisable` - Disables the blame line completely until the user calls
+  `BlameLineEnable` or `lua require("blame_line").enable()`
+  to re-enable the blame line.
+* `BlameLineToggle` - Toggles whether the blame line is enabled.
+  Equivalent to calling `BlameLineEnable` if the blame line is disabled
+  or `BlameLineDisable` if it is enabled.
+
+============================================================================================
+ISSUES 														*blame_line-usage*
+
+Currently, there are no known issues.
+
+Please raise any issues you encounter whilst using this plugin at:
+https://github.com/braxtons12/blame_line.nvim/issues
+
+============================================================================================
+vim:ft=help:et:ts=2:sw=2:sts=2:norl

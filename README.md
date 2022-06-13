@@ -103,8 +103,8 @@ This plugin aims to solve both of those problems.
 
 * blame_line.nvim only provides three commands, all for enabling/disabling the plugin:
 
-	- `BlameLineEnable` - Enables the blame line for files tracked by git, in modes valid for the current configuration (see `blame_line.setup.show_in_insert` and see `blame_line.setup.show_in_visual`).
+	- `BlameLineEnable` (in lua, `require("blame_line").enable()`)- Enables the blame line for files tracked by git, in modes valid for the current configuration (see `blame_line.setup.show_in_insert` and see `blame_line.setup.show_in_visual`).
 	  By default, the blame line is enabled
-	- `BlameLineDisable` - Disables the blame line completely until the user calls `BlameLineEnable` or `lua require("blame_line").enable()` to re-enable the blame line.
+	- `BlameLineDisable` (in lua, `require("blame_line").disable()`)- Disables the blame line completely until the user calls `BlameLineEnable` or `lua require("blame_line").enable()` to re-enable the blame line.
 	- `BlameLineToggle` - Toggles whether the blame line is enabled.
 	  Equivalent to calling `BlameLineEnable` if the blame line is disabled or `BlameLineDisable` if it is enabled.

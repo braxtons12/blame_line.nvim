@@ -188,18 +188,10 @@ blame_line.__detail.get_selected_or_hovered_lines = function()
 	local cursor_line_number = vim.fn.line(".")
 
 	if mode == "v" or mode == "V" or mode == vim.api.nvim_replace_termcodes("<C-v>", true, true, true) then
-		local visual_line_number = vim.fn.line("v")
-
-		if visual_line_number < cursor_line_number - 1 then
-			return vim.fn.range(visual_line_number, cursor_line_number - 1), true
-		elseif cursor_line_number < visual_line_number - 1 then
-			return vim.fn.range(cursor_line_number, visual_line_number - 1), true
-		end
-
-		return { cursor_line_number }, true
+		return cursor_line_number, true
 	end
 
-	return { cursor_line_number }, false
+	return cursor_line_number, false
 end
 
 -- Converts the given table of `commit_data` to the blame line string
@@ -328,7 +320,7 @@ end
 --
 -- @param line: string - the line to parse
 -- @return string, string - The key, value pair for the line
--- @function blame_line.__detail.parse_commit_summary_line(line)
+-- @function blame_line.__detail.parse_commit_time_line(line)
 blame_line.__detail.parse_commit_time_line = function(line)
 	type_check.check(line, "string", "line", "blame_line", "parse_commit_time_line")
 	local property, value = blame_line.__detail.split_commit_line(line, " ")
@@ -397,16 +389,14 @@ end
 --         }
 --     }
 -- @function blame_line.__detail.get_commit_data(file, line_number, line_count)
-blame_line.__detail.get_commit_data = function(file, line_number, line_count)
+blame_line.__detail.get_commit_data = function(file, line_number)
 	type_check.check(file, "string", "file", "blame_line", "get_commit_data")
 	type_check.check(line_number, "number", "line_number", "blame_line", "get_commit_data")
-	type_check.check(line_count, "number", "line_count", "blame_line", "get_commit_data")
 
 	local dir_path = vim.fn.shellescape(blame_line.__detail.substitute_path_separator(vim.fn.expand("%:h", nil, nil)))
-	local end_line = line_number + line_count - 1
 	local file_path_escaped = vim.fn.shellescape(file)
 	local command = "git -C " .. dir_path .. " --no-pager blame --line-porcelain -L "
-		.. line_number .. "," .. end_line .. " -- " .. file_path_escaped
+		.. line_number .. " -- " .. file_path_escaped
 	local result = vim.fn.system(command)
 	local lines = blame_line.__detail.split_string(result, "\n")
 
@@ -439,58 +429,52 @@ blame_line.__detail.get_commit_data = function(file, line_number, line_count)
 	-- 11 previous
 	-- 12 filename
 	-- 13 the line
-	local commit_table = {}
-	for line_index = line_number, line_number + line_count - 1 do
-		local commit_data = {
-			["commit-short"] = "",
-			["commit-long"] = "",
-			["author"] = "",
-			["author-mail"] = "",
-			["author-time"] = "",
-			["committer"] = "",
-			["committer-mail"] = "",
-			["committer-time"] = "",
-			["summary"] = "",
-		}
+	local commit_data = {
+		["commit-short"] = "",
+		["commit-long"] = "",
+		["author"] = "",
+		["author-mail"] = "",
+		["author-time"] = "",
+		["committer"] = "",
+		["committer-mail"] = "",
+		["committer-time"] = "",
+		["summary"] = "",
+	}
 
-		local offset = (line_index - line_number) * 13
-		for index = 1, 10 do
-			local line_is_hash = index == 1 and not hash_empty
+	for index = 1, 10 do
+		local line_is_hash = index == 1 and not hash_empty
 
-			if line_is_hash then
-				commit_data["commit-short"] = string.sub(hash, 1, 7)
-				commit_data["commit-long"] = hash
+		if line_is_hash then
+			commit_data["commit-short"] = string.sub(hash, 1, 7)
+			commit_data["commit-long"] = hash
+		else
+			if index ~= 10 then
+				if index == 2 or index == 6 then -- author or committer
+					local property, value =
+					blame_line.__detail.parse_commit_committer_or_author_line(lines[index])
+					commit_data[property] = value
+				elseif index == 3 or index == 7 then -- author-mail or committer-mail
+					local property, value =
+					blame_line.__detail.parse_commit_committer_or_author_email_line(lines[index])
+					commit_data[property] = value
+				elseif index == 4 or index == 8 then -- author-time or committer-time
+					local property, value =
+					blame_line.__detail.parse_commit_time_line(lines[index])
+					commit_data[property] = value
+				end
 			else
-				if index ~= 10 then
-					if index == 2 or index == 6 then -- author or committer
-						local property, value =
-						blame_line.__detail.parse_commit_committer_or_author_line(lines[index + offset])
-						commit_data[property] = value
-					elseif index == 3 or index == 7 then -- author-mail or committer-mail
-						local property, value =
-						blame_line.__detail.parse_commit_committer_or_author_email_line(lines[index + offset])
-						commit_data[property] = value
-					elseif index == 4 or index == 8 then -- author-time or committer-time
-						local property, value =
-						blame_line.__detail.parse_commit_time_line(lines[index + offset])
-						commit_data[property] = value
-					end
+				local not_committed_yet, _ = string.find(lines[2], "Not Committed Yet")
+				if not_committed_yet then
+					commit_data["summary"] = "Not Committed Yet"
 				else
-					local not_committed_yet, _ = string.find(lines[2], "Not Committed Yet")
-					if not_committed_yet then
-						commit_data["summary"] = "Not Committed Yet"
-					else
-						local property, value =
-						blame_line.__detail.parse_commit_summary_line(lines[index + offset])
-						commit_data[property] = value
-					end
+					local property, value =
+					blame_line.__detail.parse_commit_summary_line(lines[index])
+					commit_data[property] = value
 				end
 			end
 		end
-
-		table.insert(commit_table, commit_data)
 	end
-	return commit_table
+	return commit_data
 end
 
 -- Displays the git blame info for the given line as virtual text
@@ -543,24 +527,22 @@ blame_line.__detail.show = function()
 			return
 		end
 
-		local line_numbers, is_in_visual_mode = blame_line.__detail.get_selected_or_hovered_lines()
-		local line_count = #line_numbers
+		local line_number, is_in_visual_mode = blame_line.__detail.get_selected_or_hovered_lines()
 		if is_in_visual_mode and not blame_line.__detail.config.show_in_visual then
 			return
 		end
 
-		local buffer_num = vim.fn.bufnr("")
-		local commit_datas = blame_line.__detail.get_commit_data(file_path, line_numbers[1], line_count)
-		if commit_datas == nil then
+		local commit_data = blame_line.__detail.get_commit_data(file_path, line_number)
+		if commit_data == nil then
 			return
 		end
-		for line_index = 1, line_count do
-			blame_line.__detail.set_virtual_text(
-				buffer_num,
-				line_numbers[line_index],
-				blame_line.__detail.convert_commit_data_to_string(commit_datas[line_index])
-			)
-		end
+
+		local buffer_num = vim.fn.bufnr("")
+		blame_line.__detail.set_virtual_text(
+			buffer_num,
+			line_number,
+			blame_line.__detail.convert_commit_data_to_string(commit_data)
+		)
 	end
 
 	if blame_line.__detail.config.delay > 0 then

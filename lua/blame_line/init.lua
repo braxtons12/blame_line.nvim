@@ -410,9 +410,9 @@ blame_line.__detail.get_commit_data = function(file, line_number)
 			blame_line.__detail.enabled = false
 			vim.notify("[blame_line.nvim] not a git repository, blame_line disabled",
 				vim.log.levels.ERROR)
-			return ""
+			return nil
 		end
-		return ""
+		return nil
 	end
 
 	-- git blame output lines are in the order:

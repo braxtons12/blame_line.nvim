@@ -202,7 +202,6 @@ end
 -- @function blame_line.__detail.convert_commit_data_to_string(commit_data)
 blame_line.__detail.convert_commit_data_to_string = function(commit_data)
 	local message = blame_line.__detail.config.prefix
-  if type(commit_data) == "string" then return "" end
 	if commit_data ~= nil then
 		for index = 1, #blame_line.__detail.config.template do
 			local field = blame_line.__detail.config.template[index]
@@ -411,9 +410,9 @@ blame_line.__detail.get_commit_data = function(file, line_number)
 			blame_line.__detail.enabled = false
 			vim.notify("[blame_line.nvim] not a git repository, blame_line disabled",
 				vim.log.levels.ERROR)
-			return ""
+			return nil
 		end
-		return ""
+		return nil
 	end
 
 	-- git blame output lines are in the order:

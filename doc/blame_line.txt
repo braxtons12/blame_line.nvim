@@ -92,7 +92,7 @@ The available configuration options are (shown with default settings): >
 
 <
 ============================================================================================
-HIGHLIGHTS 													*blame_line-usage*
+HIGHLIGHTS 													*blame_line-highlights*
 
 The blame line will be highlighted using the group given as `hl_group` in the setup
 function, or the `BlameLineNvim` group by default if no group was given.
@@ -114,7 +114,7 @@ To change the highlight settings of the group used do: >
 <
 
 ============================================================================================
-COMMANDS 													*blame_line-usage*
+COMMANDS 													*blame_line-commands*
 
 blame_line.nvim only provides three commands, all for enabling/disabling the plugin:
 
@@ -130,7 +130,7 @@ blame_line.nvim only provides three commands, all for enabling/disabling the plu
   or `BlameLineDisable` if it is enabled.
 
 ============================================================================================
-ISSUES 														*blame_line-usage*
+ISSUES 														*blame_line-issues*
 
 Currently, there are no known issues.
 

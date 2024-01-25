@@ -203,13 +203,33 @@ end
 blame_line.__detail.convert_commit_data_to_string = function(commit_data)
 	local message = blame_line.__detail.config.prefix
 	if commit_data ~= nil then
+        local previous = nil
 		for index = 1, #blame_line.__detail.config.template do
 			local field = blame_line.__detail.config.template[index]
-			if field.is_template then
-				message = message .. commit_data[field.string]
-			else
-				message = message .. field.string
-			end
+            if field.is_template then
+                message = message .. commit_data[field.string]
+            else
+                -- skip punctuation (if any) after a template field that was empty
+                local num_to_skip = 0
+                if string.sub(field.string, 1, 1) == "," then
+                    num_to_skip = num_to_skip + 1
+                end
+                if string.sub(field.string, 2, 2) == " " then
+                    num_to_skip = num_to_skip + 1
+                end
+
+                if previous ~= nil
+                   and num_to_skip ~= 0
+                   and commit_data[previous.string] == "" then
+                        message = message
+                                  .. string.sub(field.string,
+                                                num_to_skip + 1,
+                                                string.len(field.string))
+                else
+                    message = message .. field.string
+                end
+            end
+            previous = field
 		end
 	end
 
@@ -400,6 +420,7 @@ blame_line.__detail.get_commit_data = function(file, line_number)
 	local result = vim.fn.system(command)
 	local lines = blame_line.__detail.split_string(result, "\n")
 
+
 	local hash = vim.fn.matchstr(lines[1], "\\c[0-9a-f]\\{40}")
 	local hash_empty = vim.fn.empty(hash) == 1
 	local was_fatal, _ = string.find(lines[1], "fatal")
@@ -430,48 +451,49 @@ blame_line.__detail.get_commit_data = function(file, line_number)
 	-- 12 filename
 	-- 13 the line
 	local commit_data = {
-		["commit-short"] = "",
-		["commit-long"] = "",
-		["author"] = "",
-		["author-mail"] = "",
-		["author-time"] = "",
-		["committer"] = "",
-		["committer-mail"] = "",
-		["committer-time"] = "",
-		["summary"] = "",
+	    ["commit-short"] = "",
+	    ["commit-long"] = "",
+	    ["author"] = "",
+	    ["author-mail"] = "",
+	    ["author-time"] = "",
+	    ["committer"] = "",
+	    ["committer-mail"] = "",
+	    ["committer-time"] = "",
+	    ["summary"] = "",
 	}
 
 	for index = 1, 10 do
 		local line_is_hash = index == 1 and not hash_empty
+                             and not select(1, string.find(lines[2], "Not Committed Yet"))
 
 		if line_is_hash then
-			commit_data["commit-short"] = string.sub(hash, 1, 7)
-			commit_data["commit-long"] = hash
-		else
-			if index ~= 10 then
-				if index == 2 or index == 6 then -- author or committer
-					local property, value =
-					blame_line.__detail.parse_commit_committer_or_author_line(lines[index])
-					commit_data[property] = value
-				elseif index == 3 or index == 7 then -- author-mail or committer-mail
-					local property, value =
-					blame_line.__detail.parse_commit_committer_or_author_email_line(lines[index])
-					commit_data[property] = value
-				elseif index == 4 or index == 8 then -- author-time or committer-time
-					local property, value =
-					blame_line.__detail.parse_commit_time_line(lines[index])
-					commit_data[property] = value
-				end
-			else
-				local not_committed_yet, _ = string.find(lines[2], "Not Committed Yet")
-				if not_committed_yet then
-					commit_data["summary"] = "Not Committed Yet"
-				else
-					local property, value =
-					blame_line.__detail.parse_commit_summary_line(lines[index])
-					commit_data[property] = value
-				end
-			end
+                commit_data["commit-short"] = string.sub(hash, 1, 7)
+                commit_data["commit-long"] = hash
+		elseif index ~= 1 then
+            if index ~= 10 then
+                if index == 2 or index == 6 then -- author or committer
+                    local property, value =
+                    blame_line.__detail.parse_commit_committer_or_author_line(lines[index])
+                    commit_data[property] = value
+                elseif index == 3 or index == 7 then -- author-mail or committer-mail
+                    local property, value =
+                    blame_line.__detail.parse_commit_committer_or_author_email_line(lines[index])
+                    commit_data[property] = value
+                elseif index == 4 or index == 8 then -- author-time or committer-time
+                    local property, value =
+                    blame_line.__detail.parse_commit_time_line(lines[index])
+                    commit_data[property] = value
+                end
+            else
+                local not_committed_yet, _ = string.find(lines[2], "Not Committed Yet")
+                if not_committed_yet then
+                    commit_data["summary"] = "Not Committed Yet"
+                else
+                    local property, value =
+                    blame_line.__detail.parse_commit_summary_line(lines[index])
+                    commit_data[property] = value
+                end
+            end
 		end
 	end
 	return commit_data

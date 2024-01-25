@@ -76,30 +76,32 @@ vim.api.nvim_create_autocmd(
 
 -- if showing in insert mode is disabled, add autocmds to check for insert enter/leave and
 -- disable/enable the blame line appropriately
-if not require("blame_line").__detail.config.show_in_insert then
-	vim.api.nvim_create_autocmd(
-		"InsertEnter",
-		{
-			desc = "Disable blame line in insert mode",
-			pattern = { "*" },
-			callback = function()
-				require("blame_line").__detail.disable_show()
-			end,
-			group = "blame_line",
-		}
-	)
-	vim.api.nvim_create_autocmd(
-		"InsertLeave",
-		{
-			desc = "Disable blame line in insert mode",
-			pattern = { "*" },
-			callback = function()
-				require("blame_line").__detail.enable_show()
-			end,
-			group = "blame_line",
-		}
-	)
-end
+vim.api.nvim_create_autocmd(
+    "InsertEnter",
+    {
+        desc = "Disable blame line in insert mode",
+        pattern = { "*" },
+        callback = function()
+            if not require("blame_line").__detail.config.show_in_insert then
+                require("blame_line").__detail.disable_show()
+            end
+        end,
+        group = "blame_line",
+    }
+)
+vim.api.nvim_create_autocmd(
+    "InsertLeave",
+    {
+        desc = "Disable blame line in insert mode",
+        pattern = { "*" },
+        callback = function()
+            if not require("blame_line").__detail.config.show_in_insert then
+                require("blame_line").__detail.enable_show()
+            end
+        end,
+        group = "blame_line",
+    }
+)
 
 vim.api.nvim_create_user_command(
 	"BlameLineEnable",

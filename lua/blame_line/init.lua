@@ -504,7 +504,7 @@ blame_line.__detail.set_virtual_text = function(buffer_num, line_num, message)
 
 	local line_index = line_num - 1
     blame_line.__detail.hide()
-	vim.api.nvim_buf_set_extmark(
+    vim.api.nvim_buf_set_extmark(
 		buffer_num,
 		blame_line.__detail.namespace,
 		line_index,
@@ -724,7 +724,7 @@ end
 -- @function blame_line.__detail.disable()
 blame_line.disable = function()
     blame_line.__detail.hide()
-	blame_line.__detail.enabled = false
+    blame_line.__detail.enabled = false
 end
 
 return blame_line

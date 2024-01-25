@@ -148,7 +148,7 @@ end
 
 config.set_date = function(date)
 	if date ~= nil then
-		local relative = date.relative ~= nil and date.relative or config.date.relative
+		local relative = date.relative == nil and config.date.relative or date.relative
 		local format = date.format or config.date.format
 		type_check.check(relative, "boolean", "date.relative", "config", "setup")
 		type_check.check(format, "string", "date.format", "config", "setup")

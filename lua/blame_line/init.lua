@@ -177,21 +177,14 @@ blame_line.__detail.get_relative_time = function(commit_time)
 	end
 end
 
--- Returns the range of lines the cursor is on or has selected (if in a visual mode), as well as
--- whether a visual mode is active
+-- Returns the range of lines the cursor is on or has selected (if in a visual mode)
 --
--- @return number[], boolean - The range of lines the cursor is on or has selected, and whether
--- a visual mode is active
+-- @return number[] - The range of lines the cursor is on or has selected
 -- @function blame_line.__detail.get_selected_or_hovered_lines()
 blame_line.__detail.get_selected_or_hovered_lines = function()
-	local mode = vim.fn.mode()
 	local cursor_line_number = vim.fn.line(".")
 
-	if mode == "v" or mode == "V" or mode == vim.api.nvim_replace_termcodes("<C-v>", true, true, true) then
-		return cursor_line_number, true
-	end
-
-	return cursor_line_number, false
+	return cursor_line_number
 end
 
 -- Converts the given table of `commit_data` to the blame line string
@@ -510,7 +503,7 @@ blame_line.__detail.set_virtual_text = function(buffer_num, line_num, message)
 	type_check.check(message, "string", "message", "blame_line", "set_virtual_text")
 
 	local line_index = line_num - 1
-	vim.api.nvim_buf_clear_namespace(vim.fn.bufnr(""), blame_line.__detail.namespace, 0, -1)
+    blame_line.__detail.hide()
 	vim.api.nvim_buf_set_extmark(
 		buffer_num,
 		blame_line.__detail.namespace,
@@ -531,14 +524,24 @@ end
 --
 -- @function blame_line.__detail.show()
 blame_line.__detail.show = function()
-	vim.api.nvim_buf_clear_namespace(vim.fn.bufnr(""), blame_line.__detail.namespace, 0, -1)
 
 	local function process_blame_line()
-		if not blame_line.__detail.enabled then
+        blame_line.__detail.hide()
+
+		if not blame_line.__detail.enabled
+           or not blame_line.__detail.show_enabled
+           or vim.bo.buftype ~= "" then
 			return
 		end
 
-		if vim.bo.buftype ~= "" then
+	    local mode = vim.api.nvim_get_mode().mode
+        local is_in_visual_mode = mode == "v"
+                                  or mode == "V"
+                                  or mode == vim.api.nvim_replace_termcodes("<C-v>", true, true, true)
+        local is_in_insert_mode = mode == "i" or select(1, string.find(mode, "i"))
+
+		if (is_in_visual_mode and not blame_line.__detail.config.show_in_visual)
+            or (is_in_insert_mode and not blame_line.__detail.config.show_in_insert) then
 			return
 		end
 
@@ -548,11 +551,7 @@ blame_line.__detail.show = function()
 			return
 		end
 
-		local line_number, is_in_visual_mode = blame_line.__detail.get_selected_or_hovered_lines()
-		if is_in_visual_mode and not blame_line.__detail.config.show_in_visual then
-			return
-		end
-
+		local line_number = blame_line.__detail.get_selected_or_hovered_lines()
 		local commit_data = blame_line.__detail.get_commit_data(file_path, line_number)
 		if commit_data == nil then
 			return
@@ -577,7 +576,7 @@ end
 --
 -- @function blame_line.__detail.hide()
 blame_line.__detail.hide = function()
-	vim.api.nvim_buf_clear_namespace(vim.fn.bufnr(""), blame_line.__detail.namespace, 0, -1)
+	vim.api.nvim_buf_clear_namespace(vim.fn.bufnr(), blame_line.__detail.namespace, 0, -1)
 end
 
 -- Updates the cached git user information (user.name, user.email), so we can correctly replace the
@@ -724,7 +723,7 @@ end
 --
 -- @function blame_line.__detail.disable()
 blame_line.disable = function()
-	vim.api.nvim_buf_clear_namespace(vim.fn.bufnr(""), blame_line.__detail.namespace, 0, -1)
+    blame_line.__detail.hide()
 	blame_line.__detail.enabled = false
 end
 

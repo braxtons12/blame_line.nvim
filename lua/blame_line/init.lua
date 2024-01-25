@@ -553,7 +553,7 @@ blame_line.__detail.show = function()
 			return
 		end
 
-		local line_number = blame_line.__detail.get_selected_or_hovered_lines()
+        local line_number = blame_line.__detail.get_selected_or_hovered_lines()
         if blame_line.__detail.line_number.number == line_number
            and blame_line.__detail.line_number.shown then
             return

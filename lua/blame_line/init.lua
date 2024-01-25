@@ -420,7 +420,6 @@ blame_line.__detail.get_commit_data = function(file, line_number)
 	local result = vim.fn.system(command)
 	local lines = blame_line.__detail.split_string(result, "\n")
 
-
 	local hash = vim.fn.matchstr(lines[1], "\\c[0-9a-f]\\{40}")
 	local hash_empty = vim.fn.empty(hash) == 1
 	local was_fatal, _ = string.find(lines[1], "fatal")

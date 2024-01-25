@@ -113,6 +113,11 @@ blame_line.__detail.show_enabled = false
 blame_line.__detail.user_name = ""
 -- git user email of the current user, used to check and replace w/ "You" if committer/author email matches
 blame_line.__detail.user_email = ""
+-- the last line number we were at, used to prevent redrawing if we haven't changed lines
+blame_line.__detail.line_number = {
+    number = 0,
+    shown = false
+}
 
 if vim.api.nvim_create_namespace then
 	blame_line.__detail.namespace = vim.api.nvim_create_namespace("blame_line")
@@ -526,11 +531,12 @@ end
 blame_line.__detail.show = function()
 
 	local function process_blame_line()
-        blame_line.__detail.hide()
 
 		if not blame_line.__detail.enabled
            or not blame_line.__detail.show_enabled
            or vim.bo.buftype ~= "" then
+            blame_line.__detail.hide()
+            blame_line.__detail.line_number.shown = false
 			return
 		end
 
@@ -542,8 +548,21 @@ blame_line.__detail.show = function()
 
 		if (is_in_visual_mode and not blame_line.__detail.config.show_in_visual)
             or (is_in_insert_mode and not blame_line.__detail.config.show_in_insert) then
+            blame_line.__detail.hide()
+            blame_line.__detail.line_number.shown = false
 			return
 		end
+
+        local line_number = blame_line.__detail.get_selected_or_hovered_lines()
+        if blame_line.__detail.line_number.number == line_number
+           and blame_line.__detail.line_number.shown then
+            return
+        end
+
+        blame_line.__detail.hide()
+
+        blame_line.__detail.line_number.number = line_number
+        blame_line.__detail.line_number.shown = false
 
 		local file_path = blame_line.__detail.substitute_path_separator(vim.fn.expand("%:p", nil, nil))
 
@@ -551,7 +570,6 @@ blame_line.__detail.show = function()
 			return
 		end
 
-		local line_number = blame_line.__detail.get_selected_or_hovered_lines()
 		local commit_data = blame_line.__detail.get_commit_data(file_path, line_number)
 		if commit_data == nil then
 			return
@@ -563,6 +581,7 @@ blame_line.__detail.show = function()
 			line_number,
 			blame_line.__detail.convert_commit_data_to_string(commit_data)
 		)
+        blame_line.__detail.line_number.shown = true
 	end
 
 	if blame_line.__detail.config.delay > 0 then

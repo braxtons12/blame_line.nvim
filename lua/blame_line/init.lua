@@ -588,8 +588,10 @@ blame_line.__detail.show = function()
 	end
 
 	if blame_line.__detail.config.delay > 0 then
-		-- immediately hide the previous blame line
-		blame_line.__detail.hide()
+		-- immediately hide the previous blame line if we've switched lines
+		if blame_line.__detail.line_number.number ~= blame_line.__detail.get_selected_or_hovered_lines() then
+			blame_line.__detail.hide()
+		end
 		-- cancel the last timer, if any
 		if blame_line.__detail.last_timer ~= nil then
 			blame_line.__detail.last_timer:stop()

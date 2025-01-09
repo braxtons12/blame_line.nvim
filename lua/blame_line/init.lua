@@ -118,6 +118,9 @@ blame_line.__detail.line_number = {
     number = 0,
     shown = false
 }
+-- when we have a delay configured, the timer for the last scheduled callback.
+-- this allows us to cancel if a new callback is scheduled before this one runs
+blame_line.__detail.last_timer = nil
 
 if vim.api.nvim_create_namespace then
 	blame_line.__detail.namespace = vim.api.nvim_create_namespace("blame_line")
@@ -587,6 +590,16 @@ blame_line.__detail.show = function()
 	if blame_line.__detail.config.delay > 0 then
 		-- immediately hide the previous blame line
 		blame_line.__detail.hide()
+		-- cancel the last timer, if any
+		if blame_line.__detail.last_timer ~= nil then
+			blame_line.__detail.last_timer:stop()
+			blame_line.__detail.last_timer:close()
+		end
+		-- and schedule the next one, making sure to clean up afterwards
+		blame_line.__detail.last_timer = vim.defer_fn(function()
+			process_blame_line()
+			blame_line.__detail.last_timer = nil
+		end, blame_line.__detail.config.delay)
 		vim.defer_fn(process_blame_line, blame_line.__detail.config.delay)
 	else
 		process_blame_line()

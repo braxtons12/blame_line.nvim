@@ -609,7 +609,6 @@ blame_line.__detail.show = function()
 				process_blame_line()
 				blame_line.__detail.last_timer = nil
 			end, blame_line.__detail.config.delay)
-			vim.defer_fn(process_blame_line, blame_line.__detail.config.delay)
 		end
 	else
 		if will_draw then

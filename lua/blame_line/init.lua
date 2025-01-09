@@ -585,6 +585,8 @@ blame_line.__detail.show = function()
 	end
 
 	if blame_line.__detail.config.delay > 0 then
+		-- immediately hide the previous blame line
+		blame_line.__detail.hide()
 		vim.defer_fn(process_blame_line, blame_line.__detail.config.delay)
 	else
 		process_blame_line()

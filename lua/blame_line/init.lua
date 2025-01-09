@@ -532,15 +532,17 @@ end
 --
 -- @function blame_line.__detail.show()
 blame_line.__detail.show = function()
+	local function get_file_path()
+		return blame_line.__detail.substitute_path_separator(vim.fn.expand("%:p", nil, nil))
+	end
 
-	local function process_blame_line()
-
+	local function check_will_draw()
 		if not blame_line.__detail.enabled
            or not blame_line.__detail.show_enabled
            or vim.bo.buftype ~= "" then
             blame_line.__detail.hide()
             blame_line.__detail.line_number.shown = false
-			return
+			return false
 		end
 
 	    local mode = vim.api.nvim_get_mode().mode
@@ -553,13 +555,13 @@ blame_line.__detail.show = function()
             or (is_in_insert_mode and not blame_line.__detail.config.show_in_insert) then
             blame_line.__detail.hide()
             blame_line.__detail.line_number.shown = false
-			return
+			return false
 		end
 
         local line_number = blame_line.__detail.get_selected_or_hovered_lines()
         if blame_line.__detail.line_number.number == line_number
            and blame_line.__detail.line_number.shown then
-            return
+            return false
         end
 
         blame_line.__detail.hide()
@@ -567,12 +569,18 @@ blame_line.__detail.show = function()
         blame_line.__detail.line_number.number = line_number
         blame_line.__detail.line_number.shown = false
 
-		local file_path = blame_line.__detail.substitute_path_separator(vim.fn.expand("%:p", nil, nil))
+		local file_path = get_file_path()
 
 		if string.len(file_path) == 0 then
-			return
+			return false
 		end
 
+		return true
+	end
+
+	local function process_blame_line()
+		local line_number = blame_line.__detail.line_number.number
+		local file_path = get_file_path()
 		local commit_data = blame_line.__detail.get_commit_data(file_path, line_number)
 		if commit_data == nil then
 			return
@@ -587,24 +595,26 @@ blame_line.__detail.show = function()
         blame_line.__detail.line_number.shown = true
 	end
 
+	local will_draw = check_will_draw()
 	if blame_line.__detail.config.delay > 0 then
-		-- immediately hide the previous blame line if we've switched lines
-		if blame_line.__detail.line_number.number ~= blame_line.__detail.get_selected_or_hovered_lines() then
-			blame_line.__detail.hide()
-		end
 		-- cancel the last timer, if any
 		if blame_line.__detail.last_timer ~= nil then
 			blame_line.__detail.last_timer:stop()
 			blame_line.__detail.last_timer:close()
-		end
-		-- and schedule the next one, making sure to clean up afterwards
-		blame_line.__detail.last_timer = vim.defer_fn(function()
-			process_blame_line()
 			blame_line.__detail.last_timer = nil
-		end, blame_line.__detail.config.delay)
-		vim.defer_fn(process_blame_line, blame_line.__detail.config.delay)
+		end
+		-- if we would draw, schedule the next one, making sure to clean up afterwards
+		if will_draw then
+			blame_line.__detail.last_timer = vim.defer_fn(function()
+				process_blame_line()
+				blame_line.__detail.last_timer = nil
+			end, blame_line.__detail.config.delay)
+			vim.defer_fn(process_blame_line, blame_line.__detail.config.delay)
+		end
 	else
-		process_blame_line()
+		if will_draw then
+			process_blame_line()
+		end
 	end
 end
 

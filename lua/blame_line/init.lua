@@ -417,7 +417,7 @@ blame_line.__detail.get_commit_data = function(file, line_number)
 	local dir_path = vim.fn.shellescape(blame_line.__detail.substitute_path_separator(vim.fn.expand("%:h", nil, nil)))
 	local file_path_escaped = vim.fn.shellescape(file)
 	local command = "git -C " .. dir_path .. " --no-pager blame --line-porcelain -L "
-		.. line_number .. " -- " .. file_path_escaped
+		.. line_number .. "," .. line_number .. " -- " .. file_path_escaped
 	local result = vim.fn.system(command)
 	local lines = blame_line.__detail.split_string(result, "\n")
 
